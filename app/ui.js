@@ -64,10 +64,10 @@ const UI = {
 
         // We rely on modern APIs which might not be available in an
         // insecure context
-        if (!window.isSecureContext) {
-            // FIXME: This gets hidden when connecting
-            UI.showStatus(_("Running without HTTPS is not recommended, crashes or other issues are likely."), 'error');
-        }
+       //if (!window.isSecureContext) {
+       //    // FIXME: This gets hidden when connecting
+       //    UI.showStatus(_("Running without HTTPS is not recommended, crashes or other issues are likely."), 'error');
+       //}
 
         // Try to fetch version number
         fetch('./package.json')
@@ -326,6 +326,8 @@ const UI = {
             .addEventListener('click', UI.toggleClipboardPanel);
         document.getElementById("noVNC_clipboard_text")
             .addEventListener('change', UI.clipboardSend);
+        document.getElementById("noVNC_clipboard_send_button")
+            .addEventListener('click', UI.clipboardSender);
     },
 
     // Add a call to save settings when the element changes,
@@ -970,6 +972,36 @@ const UI = {
         Log.Debug(">> UI.clipboardSend: " + text.substr(0, 40) + "...");
         UI.rfb.clipboardPasteFrom(text);
         Log.Debug("<< UI.clipboardSend");
+    },
+
+    clipboardSender: function() {
+        function f(t) {
+            if (t.length == 0) {
+                return
+            }
+            var character = t.shift();
+            var i=[];
+            var code = character.charCodeAt();
+            var needs_shift = character.match(/[A-Z!@#$%^&*()_+{}:\"<>?~|]/);
+            if (needs_shift) {
+                UI.rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
+            }
+            UI.rfb.sendKey(code,0);
+            if (needs_shift) {
+                UI.rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
+            }
+            if (t.length > 0) {
+                setTimeout(function() {f(t);}, 10);
+            }
+        };
+        const text = document.getElementById('noVNC_clipboard_text').value;
+        if (text == '') {
+            return
+        }
+        Log.Debug(">> UI.clipboardSend: " + text.substr(0, 40) + "...");
+        var split_text = text.split('');
+        f(split_text)
+        document.getElementById('noVNC_clipboard_text').value = "";
     },
 
 /* ------^-------
